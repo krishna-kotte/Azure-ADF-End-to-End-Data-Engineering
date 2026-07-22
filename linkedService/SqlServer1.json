@@ -5,13 +5,13 @@
 		"annotations": [],
 		"type": "SqlServer",
 		"typeProperties": {
-			"server": "TEJASRIKOTTE\\SQLEXPRESS",
+			"server": "<SERVERNAME>",
 			"database": "ADFProject",
 			"encrypt": "optional",
 			"trustServerCertificate": true,
 			"authenticationType": "Windows",
-			"userName": "tejasri.kotte@outlook.com",
-			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJmOGExODUwYy0wY2EyLTQ2NWQtYTU4NC1kN2I5Y2JkODllNzgiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+			"userName": "<username>",
+			"encryptedCredential": "<credencial>"
 		},
 		"connectVia": {
 			"referenceName": "SelfHosted-project1",
