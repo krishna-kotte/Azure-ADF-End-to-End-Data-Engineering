@@ -1,0 +1,136 @@
+{
+	"name": "Silver Layer Transformation",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "SQL_Parquet_dataset",
+						"type": "DatasetReference"
+					},
+					"name": "OnPremSQLData",
+					"description": "Import data from SQL Parquet dataset"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "AzureDataLakeStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "select1"
+				},
+				{
+					"name": "CurrentDate"
+				},
+				{
+					"name": "BookingMonth"
+				},
+				{
+					"name": "BookingQuarter"
+				},
+				{
+					"name": "DayOfWeek"
+				},
+				{
+					"name": "FlightCategory"
+				},
+				{
+					"name": "TicketCategory"
+				},
+				{
+					"name": "CleanCheckinStatus"
+				},
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          booking_id as integer,",
+				"          passenger_id as integer,",
+				"          flight_id as integer,",
+				"          airline_id as integer,",
+				"          origin_airport_id as integer,",
+				"          destination_airport_id as integer,",
+				"          booking_date as date,",
+				"          ticket_cost as decimal(10,2),",
+				"          flight_duration_mins as integer,",
+				"          checkin_status as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'parquet') ~> OnPremSQLData",
+				"OnPremSQLData select(mapColumn(",
+				"          booking_id,",
+				"          passenger_id,",
+				"          flight_id,",
+				"          airline_id,",
+				"          origin_airport_id,",
+				"          destination_airport_id,",
+				"          booking_date,",
+				"          ticket_cost,",
+				"          flight_duration_mins,",
+				"          checkin_status",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 derive(Current_date = currentDate(),",
+				"          Booking_year = year(booking_date)) ~> CurrentDate",
+				"CurrentDate derive(BookingMonth = month(booking_date)) ~> BookingMonth",
+				"BookingMonth derive(BookingQuarter = iif(month(booking_date) <= 3, 'Q1',\r",
+				"    iif(month(booking_date) <= 6, 'Q2',\r",
+				"        iif(month(booking_date) <= 9, 'Q3', 'Q4')))) ~> BookingQuarter",
+				"BookingQuarter derive(DayOfWeek = dayOfWeek(booking_date)) ~> DayOfWeek",
+				"DayOfWeek derive(FlightCategory = iif(flight_duration_mins < 180,\r",
+				"\"Short\",\r",
+				"iif(flight_duration_mins <=360,\r",
+				"\"Medium\",\r",
+				"\"Long\"))) ~> FlightCategory",
+				"FlightCategory derive(TicketCategory = iif(ticket_cost <300,\r",
+				"\"Budget\",\r",
+				"iif(ticket_cost<700,\r",
+				"\"Standard\",\r",
+				"\"Premium\"))) ~> TicketCategory",
+				"TicketCategory derive(checkin_status = upper(trim(checkin_status))) ~> CleanCheckinStatus",
+				"CleanCheckinStatus filter(ticket_cost > 0",
+				"&&",
+				"flight_duration_mins > 0",
+				"&&",
+				"!isNull(passenger_id)",
+				"&&",
+				"!isNull(flight_id)) ~> filter1",
+				"filter1 alterRow(upsertIf(1==1)) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silverlayer',",
+				"     folderPath: 'Silver_Sql_Data',",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: false,",
+				"     updateable: false,",
+				"     upsertable: true,",
+				"     keys:['booking_id'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink1"
+			]
+		}
+	}
+}

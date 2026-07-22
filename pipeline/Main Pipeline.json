@@ -1,0 +1,157 @@
+{
+	"name": "Main Pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "On-prem Sql Data Ingestion",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "OnPrem_SQL_Data_Ingestion",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Alert",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "On-prem Sql Data Ingestion",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": "https://prod-20.northcentralus.logic.azure.com:443/workflows/8388574c96e247b4b5ff4d1420e1b6f5/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=9jWIqnMN8iETm-1L7pAZLong6EeqtsOEeMnO3h25YHE",
+					"body": {
+						"value": "{\n    \"PipelineName\":\"@{pipeline().Pipeline}\",\n    \"Status\":\"@{activity('On-prem Sql Data Ingestion').Status}\",\n    \"RunId\": \"@{pipeline().RunId}\",\n    \"StartTime\":\"@{pipeline().TriggerTime}\",\n    \"EndTime\":\"@{utcNow()}\",\n    \"ErrorMessage\": \"@{if(equals(activity('On-prem Sql Data Ingestion').Status,'Failed'), string(activity('On-prem Sql Data Ingestion').error), 'NO Errors')}\"\n    \n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Silver Layer",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "On-prem Sql Data Ingestion",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "Silver Layer Ingestion",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Silver Layer Alert",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Silver Layer",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": "https://prod-20.northcentralus.logic.azure.com:443/workflows/8388574c96e247b4b5ff4d1420e1b6f5/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=9jWIqnMN8iETm-1L7pAZLong6EeqtsOEeMnO3h25YHE",
+					"body": {
+						"value": "{\n    \"PipelineName\":\"@{pipeline().Pipeline}\",\n    \"Status\":\"@{activity('Silver Layer').Status}\",\n    \"RunId\": \"@{pipeline().RunId}\",\n    \"StartTime\":\"@{pipeline().TriggerTime}\",\n    \"EndTime\":\"@{utcNow()}\",\n    \"ErrorMessage\": \"@{if(equals(activity('Silver Layer').Status,'Failed'), string(activity('Silver Layer').error), 'NO Errors')}\"\n    \n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Gold Layer",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "Silver Layer",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "GoldLayer_Pipeline",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Web1",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Gold Layer",
+						"dependencyConditions": [
+							"Succeeded",
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": "https://prod-20.northcentralus.logic.azure.com:443/workflows/8388574c96e247b4b5ff4d1420e1b6f5/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=9jWIqnMN8iETm-1L7pAZLong6EeqtsOEeMnO3h25YHE",
+					"body": {
+						"value": "{\n    \"PipelineName\":\"@{pipeline().Pipeline}\",\n    \"Status\":\"@{activity('Gold Layer').Status}\",\n    \"RunId\": \"@{pipeline().RunId}\",\n    \"StartTime\":\"@{pipeline().TriggerTime}\",\n    \"EndTime\":\"@{utcNow()}\",\n    \"ErrorMessage\": \"@{if(equals(activity('Gold Layer').Status,'Failed'), string(activity('Gold Layer').error), 'NO Errors')}\"\n    \n}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2026-07-22T13:03:24Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

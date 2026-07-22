@@ -1,0 +1,228 @@
+{
+	"name": "Gold_Layer Transformation",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"linkedService": {
+						"referenceName": "AzureDataLakeStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "AzureDataLakeStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source2"
+				},
+				{
+					"linkedService": {
+						"referenceName": "AzureDataLakeStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "source3"
+				}
+			],
+			"sinks": [
+				{
+					"linkedService": {
+						"referenceName": "AzureDataLakeStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "Sink"
+				},
+				{
+					"linkedService": {
+						"referenceName": "AzureDataLakeStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"linkedService": {
+						"referenceName": "AzureDataLakeStorage",
+						"type": "LinkedServiceReference"
+					},
+					"name": "sink2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "AirlineSummary"
+				},
+				{
+					"name": "sort1"
+				},
+				{
+					"name": "MonthlySummary"
+				},
+				{
+					"name": "sort2"
+				},
+				{
+					"name": "AirportSummary"
+				},
+				{
+					"name": "sort3"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          booking_id as integer,",
+				"          passenger_id as integer,",
+				"          flight_id as integer,",
+				"          airline_id as integer,",
+				"          origin_airport_id as integer,",
+				"          destination_airport_id as integer,",
+				"          booking_date as date,",
+				"          ticket_cost as decimal(10,2),",
+				"          flight_duration_mins as integer,",
+				"          checkin_status as string,",
+				"          Current_date as date,",
+				"          Booking_year as integer,",
+				"          BookingMonth as integer,",
+				"          BookingQuarter as string,",
+				"          DayOfWeek as integer,",
+				"          FlightCategory as string,",
+				"          TicketCategory as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silverlayer',",
+				"     folderPath: 'Silver_Sql_Data') ~> source1",
+				"source(output(",
+				"          booking_id as integer,",
+				"          passenger_id as integer,",
+				"          flight_id as integer,",
+				"          airline_id as integer,",
+				"          origin_airport_id as integer,",
+				"          destination_airport_id as integer,",
+				"          booking_date as date,",
+				"          ticket_cost as decimal(10,2),",
+				"          flight_duration_mins as integer,",
+				"          checkin_status as string,",
+				"          Current_date as date,",
+				"          Booking_year as integer,",
+				"          BookingMonth as integer,",
+				"          BookingQuarter as string,",
+				"          DayOfWeek as integer,",
+				"          FlightCategory as string,",
+				"          TicketCategory as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silverlayer',",
+				"     folderPath: 'Silver_Sql_Data') ~> source2",
+				"source(output(",
+				"          booking_id as integer,",
+				"          passenger_id as integer,",
+				"          flight_id as integer,",
+				"          airline_id as integer,",
+				"          origin_airport_id as integer,",
+				"          destination_airport_id as integer,",
+				"          booking_date as date,",
+				"          ticket_cost as decimal(10,2),",
+				"          flight_duration_mins as integer,",
+				"          checkin_status as string,",
+				"          Current_date as date,",
+				"          Booking_year as integer,",
+				"          BookingMonth as integer,",
+				"          BookingQuarter as string,",
+				"          DayOfWeek as integer,",
+				"          FlightCategory as string,",
+				"          TicketCategory as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'silverlayer',",
+				"     folderPath: 'Silver_Sql_Data') ~> source3",
+				"source1 aggregate(groupBy(airline_id),",
+				"     TotalBookings = count(booking_id),",
+				"          TotalRevenue = sum(ticket_cost),",
+				"          AvgTicketCost = avg(ticket_cost),",
+				"          AvgFlightDuration = avg(flight_duration_mins),",
+				"          CheckedInPassengers = sum(iif(checkin_status=='YES',1,0))) ~> AirlineSummary",
+				"AirlineSummary sort(asc(airline_id, true)) ~> sort1",
+				"source2 aggregate(groupBy(Booking_year,",
+				"          BookingMonth),",
+				"     TotalBookings = count(booking_id),",
+				"          TotalRevenue = sum(ticket_cost),",
+				"          AvgTicketCost = avg(ticket_cost)) ~> MonthlySummary",
+				"MonthlySummary sort(asc(Booking_year, true),",
+				"     asc(BookingMonth, true)) ~> sort2",
+				"source3 aggregate(groupBy(origin_airport_id),",
+				"     TotalFlights = count(booking_id),",
+				"          TotalRevenue = sum(ticket_cost),",
+				"          AvgTicketCost = avg(ticket_cost),",
+				"          AvgFlightDuration = avg(flight_duration_mins)) ~> AirportSummary",
+				"AirportSummary sort(asc(origin_airport_id, true)) ~> sort3",
+				"sort1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'goldlayer',",
+				"     folderPath: 'AirlineSummary',",
+				"     overwrite: true,",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     upsertable: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> Sink",
+				"sort2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'goldlayer',",
+				"     folderPath: 'MonthlySummary',",
+				"     overwrite: true,",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     upsertable: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink1",
+				"sort3 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'delta',",
+				"     fileSystem: 'goldlayer',",
+				"     folderPath: 'AirportSummary',",
+				"     overwrite: true,",
+				"     mergeSchema: false,",
+				"     autoCompact: false,",
+				"     optimizedWrite: false,",
+				"     vacuum: 0,",
+				"     deletable: false,",
+				"     insertable: true,",
+				"     updateable: false,",
+				"     upsertable: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink2"
+			]
+		}
+	}
+}
