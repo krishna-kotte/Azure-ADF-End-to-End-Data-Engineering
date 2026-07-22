@@ -6,7 +6,7 @@ An end-to-end Azure Data Engineering project that ingests data from an on-premis
 
 ## Architecture
 
-![Architecture](Architecture.png)
+![Architecture](Screenshots/architecture.png)
 
 ---
 
